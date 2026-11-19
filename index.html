@@ -5,7 +5,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Calendario">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAACeklEQVR4nO3dMU4bURRAUUA0pKPKJlLTkF1kG7AFimwh68guqKizFtKmjaJc5SuYN19wTm3NWF/Xz/bXeHx+e/d8Bn9zcfQTYF/iIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDdDlzmu9fr2ZO9H58efj52qcwOUjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA6SOEjiIImDJA7S0A+pP17PnIdTMjlI4iCJgyQOkjhI4iCJgyQOkjhI4iANbZ+ve/rxvPKwm08f3udxJpkcJHGQxEESB0kcJHGQxEESB0kcJHGQtts+P9X+8Vs9ziSTgyQOkjhI4iCJgyQOkjhI4iBttwm22zWbn++X/jL+8dvVzPOZZHKQxEESB0kcJHGQxEESB0kcJHGQxEHabvt8t2s2/7kvvmirffFFJgdJHCRxkMRBEgdJHCRxkMRB2m4TbLdrSHc7ziSTgyQOkjhI4iCJgyQOkjhI4iCJgyQO0nbb57tdQ7rbcSaZHCRxkMRBEgdpKI7FO2uxaGY9TQ6SOEhzcXhnOZWxlRydHPp4uck19LZCmo7D8HiJ4dU7YHLo4//Mr9v57d3S7ylew6nui/LmHfVyOvIzhxGy4sBVOnJy/M4U+cMOr5xd4mBDvsqSxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcJHGQxEESB0kcpF+YsE6VYJ03gwAAAABJRU5ErkJggg==">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="apple-touch-icon.png">
 <title>Calendario</title>
 <style>
 :root{--bg:#f7f7f7;--card:#fff;--c2:#f3f3f4;--tx:#18181b;--mu:#76767d;--ac:#1f7a4d;--ln:#e6e6e8;--soft:#dcece3;--rd:#c4453b;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -150,6 +151,12 @@ svg{display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:ro
 .sgr{display:grid;grid-template-columns:84px 84px 1fr 32px;gap:6px;margin-bottom:8px;align-items:center}
 .sheet .sgr input{padding:0 8px}
 .rm{width:32px;height:32px;color:var(--mu)}
+
+.sbt{font-size:16px;font-weight:500;margin-top:8px;overflow-wrap:anywhere}
+.sbt+.evs{margin-top:2px}
+.sgl2{display:flex;align-items:baseline;gap:10px;margin-top:6px}
+.sgl2 .sl{flex:1;min-width:0;font-size:16px;font-weight:500;overflow-wrap:anywhere}
+.sgl2 .tm{font-size:14px;color:var(--mu);font-variant-numeric:tabular-nums;white-space:nowrap}
 </style></head>
 <body>
 <div class="app">
@@ -259,7 +266,7 @@ function renderDay(){
   const mk=marks[sel];
   $("mrow").innerHTML=mk?`<button class="mp on" style="--mc:${mk.c}"><i></i>${esc(mk.l||"Marcado")}</button>`:'<button class="mp">+ Marcar día libre</button>';
   const card=x=>x.k==="w"
-    ?`<div class="evc" data-id="${x.id}"><i class="bar" style="background:${colOf(x.c)}"></i><div class="evm"><div class="evt">${esc(x.t)}</div>${(x.sg||[]).map(g=>`<div class="evs sg2"><span class="tm">${g.s} – ${g.e}</span><span>${esc(g.l||"")}</span></div>`).join("")}</div>${IC.chev}</div>`
+    ?`<div class="evc" data-id="${x.id}"><i class="bar" style="background:${colOf(x.c)}"></i><div class="evm"><div class="evt">${esc(x.t)}</div>${(x.sg||[]).map(g=>`<div class="sbt">${esc(g.l||"Tramo")}</div><div class="evs">${IC.clock}${g.s} – ${g.e}</div>`).join("")}</div>${IC.chev}</div>`
     :`<div class="evc${x.d?" dn":""}" data-id="${x.id}"><i class="bar" style="background:${colOf(x.c)}"></i><div class="evm"><div class="evt">${esc(x.t)}</div><div class="evs">${IC.clock}${x.s?x.s+" – "+x.e:"Todo el día"}</div></div>${x.r?`<button class="ck${x.d?" on":""}" data-ck aria-label="Completar">${IC.ck}</button>`:""}${IC.chev}</div>`;
   $("list").innerHTML=es.map(card).join("")||'<div class="empty">Sin eventos este día.</div>';
 }
