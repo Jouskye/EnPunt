@@ -138,6 +138,18 @@ svg{display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:ro
 .sheet input::-webkit-datetime-edit{padding:0}
 .sheet button{-webkit-appearance:none;appearance:none}
 .sb{display:grid;place-items:center;padding:0 8px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.d.mkd .n{box-shadow:inset 0 0 0 2.5px var(--mc)}
+.d.mkd.sel .n{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--mc)}
+.mrow{margin-bottom:10px;flex:none}
+.mp{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;border:1.5px dashed var(--ln);color:var(--mu);font-size:15px}
+.mp.on{border:2px solid var(--mc);color:var(--tx);font-weight:600}
+.mp i{width:12px;height:12px;border-radius:50%;border:2.5px solid var(--mc)}
+.sg2{margin-top:4px;gap:10px}
+.sg2 .tm{font-variant-numeric:tabular-nums;font-weight:600;color:var(--tx)}
+.sgr{display:grid;grid-template-columns:84px 84px 1fr 32px;gap:6px;margin-bottom:8px;align-items:center}
+.sheet .sgr input{padding:0 8px}
+.rm{width:32px;height:32px;color:var(--mu)}
 </style></head>
 <body>
 <div class="app">
@@ -152,6 +164,7 @@ svg{display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:ro
   <div class="pad" id="gw"><div class="dows" id="dows"></div><div class="grid" id="grid"></div></div>
   <div class="sheetp"><div class="handle"></div>
     <div class="dh"><h2 id="dtitle"></h2><button class="pill" id="hoy">Hoy</button></div>
+    <div class="mrow" id="mrow"></div>
     <div class="scroll" id="list"></div>
   </div>
 </section>
@@ -173,8 +186,10 @@ svg{display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:ro
 <div class="bd" id="bd" hidden>
  <div class="sheet" id="s-ev">
   <h3 class="full" id="evh">Nuevo evento</h3>
+  <div class="seg full" id="kseg"><button data-k="e" class="on">Evento</button><button data-k="w">Trabajo</button></div>
   <input class="full" type="text" id="n" placeholder="Título" maxlength="120">
   <input class="full" type="date" id="dt" aria-label="Fecha">
+  <div class="full" id="sgw" hidden><div id="sgl"></div><button class="sb" id="sga" style="width:100%">+ Añadir tramo</button></div>
   <input type="time" id="s" value="09:00" aria-label="Inicio"><input type="time" id="e" value="10:00" aria-label="Fin">
   <button class="sb" id="tad">Todo el día</button><button class="sb" id="trm">En recordatorios</button>
   <div class="cp full" id="cp"></div>
@@ -191,6 +206,15 @@ svg{display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:ro
   <button class="sb x full" data-a="del" id="god">Eliminar</button>
   <button class="sb" data-a="x">Cancelar</button><button class="sb p" data-a="ok">Guardar</button>
  </div>
+<div class="sheet" id="s-mk" hidden>
+  <h3 class="full" id="mkh">Marcar día</h3>
+  <input class="full" type="text" id="mkl" placeholder="Etiqueta (Libre, Vacaciones…)" maxlength="30">
+  <div class="lb">Desde</div><div class="lb">Hasta (opcional)</div>
+  <input type="date" id="mk1" aria-label="Desde"><input type="date" id="mk2" aria-label="Hasta">
+  <div class="cp full" id="cp4"></div>
+  <button class="sb x full" data-a="del" id="mkd">Quitar marca</button>
+  <button class="sb" data-a="x">Cancelar</button><button class="sb p" data-a="ok">Guardar</button>
+ </div>
 </div>
 <script>
 const MES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
@@ -203,8 +227,8 @@ const cap=s=>s[0].toUpperCase()+s.slice(1);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||"null")||d}catch(e){return d}};
 const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
-let ev=ld("cal-events-v1",{}),gs=ld("cal-goals-v1",[]);
-const persist=()=>{sv("cal-events-v1",ev);sv("cal-goals-v1",gs)};
+let ev=ld("cal-events-v1",{}),gs=ld("cal-goals-v1",[]),marks=ld("cal-marks-v1",{});
+const persist=()=>{sv("cal-events-v1",ev);sv("cal-goals-v1",gs);sv("cal-marks-v1",marks)};
 const p2=n=>String(n).padStart(2,"0");
 const key=d=>d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate());
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -221,7 +245,7 @@ function render(){
   for(let i=0;i<42;i++){
     const d=new Date(y,m,1-off+i),k=key(d);
     if(i>=35&&d.getMonth()!==m)break;
-    h+=`<button class="d${d.getMonth()!==m?" o":""}${k===tk?" today":""}${k===sel?" sel":""}" data-k="${k}"><span class="n">${d.getDate()}</span><span class="mk">${(ev[k]||[]).length?'<i class="dot"></i>':""}</span></button>`;
+    h+=`<button class="d${d.getMonth()!==m?" o":""}${k===tk?" today":""}${k===sel?" sel":""}${marks[k]?" mkd":""}" data-k="${k}"${marks[k]?` style="--mc:${marks[k].c}"`:""}><span class="n">${d.getDate()}</span><span class="mk">${(ev[k]||[]).length?'<i class="dot"></i>':""}</span></button>`;
   }
   $("grid").innerHTML=h;renderDay();renderRem();renderGoals();
   $("v-cal").hidden=tab!=="cal";$("v-rem").hidden=tab!=="rem";$("v-go").hidden=tab!=="go";
@@ -230,8 +254,14 @@ function render(){
 function renderDay(){
   const {M,D,d}=dparts(sel);
   $("dtitle").textContent=cap(DS[d.getDay()])+", "+D+" de "+cap(MES[M-1]);
-  const es=(ev[sel]||[]).slice().sort((a,b)=>(a.s||"").localeCompare(b.s||""));
-  $("list").innerHTML=es.map(x=>`<div class="evc${x.d?" dn":""}" data-id="${x.id}"><i class="bar" style="background:${colOf(x.c)}"></i><div class="evm"><div class="evt">${esc(x.t)}</div><div class="evs">${IC.clock}${x.s?x.s+" – "+x.e:"Todo el día"}</div></div>${x.r?`<button class="ck${x.d?" on":""}" data-ck aria-label="Completar">${IC.ck}</button>`:""}${IC.chev}</div>`).join("")||'<div class="empty">Sin eventos este día.</div>';
+  const tm=x=>x.k==="w"&&x.sg&&x.sg[0]?x.sg[0].s:x.s||"";
+  const es=(ev[sel]||[]).slice().sort((a,b)=>tm(a).localeCompare(tm(b)));
+  const mk=marks[sel];
+  $("mrow").innerHTML=mk?`<button class="mp on" style="--mc:${mk.c}"><i></i>${esc(mk.l||"Marcado")}</button>`:'<button class="mp">+ Marcar día libre</button>';
+  const card=x=>x.k==="w"
+    ?`<div class="evc" data-id="${x.id}"><i class="bar" style="background:${colOf(x.c)}"></i><div class="evm"><div class="evt">${esc(x.t)}</div>${(x.sg||[]).map(g=>`<div class="evs sg2"><span class="tm">${g.s} – ${g.e}</span><span>${esc(g.l||"")}</span></div>`).join("")}</div>${IC.chev}</div>`
+    :`<div class="evc${x.d?" dn":""}" data-id="${x.id}"><i class="bar" style="background:${colOf(x.c)}"></i><div class="evm"><div class="evt">${esc(x.t)}</div><div class="evs">${IC.clock}${x.s?x.s+" – "+x.e:"Todo el día"}</div></div>${x.r?`<button class="ck${x.d?" on":""}" data-ck aria-label="Completar">${IC.ck}</button>`:""}${IC.chev}</div>`;
+  $("list").innerHTML=es.map(card).join("")||'<div class="empty">Sin eventos este día.</div>';
 }
 function remRow({x,k}){
   const late=!x.d&&k<tk;
@@ -306,17 +336,36 @@ $("gl").addEventListener("pointerdown",e=>{const bw=e.target.closest(".bw");if(!
 $("gl").addEventListener("pointermove",e=>{if(drag){moved=true;setP(drag,e.clientX)}});
 $("gl").addEventListener("pointerup",e=>{if(!drag)return;const bw=drag;drag=null;if(!moved)setP(bw,e.clientX);persist();render()});
 $("gl").addEventListener("pointercancel",()=>{if(drag){drag=null;persist();render()}});
-function showS(id){["s-ev","s-go"].forEach(i=>$(i).hidden=i!==id);$("bd").hidden=false}
+function showS(id){["s-ev","s-go","s-mk"].forEach(i=>$(i).hidden=i!==id);$("bd").hidden=false}
 const closeS=()=>{$("bd").hidden=true;sh=null;window.scrollTo(0,0)};
-function sw(){$({ev:"cp",go:"cp3"}[sh.t]).innerHTML=PAL.map(c=>`<button class="sw${c===sh.c?" on":""}" data-c="${c}" style="background:${c}" aria-label="Color"></button>`).join("")}
-function evUi(){$("s").hidden=$("e").hidden=sh.ad;$("tad").classList.toggle("on",sh.ad);$("trm").classList.toggle("on",sh.r)}
+function sw(){$({ev:"cp",go:"cp3",mk:"cp4"}[sh.t]).innerHTML=PAL.map(c=>`<button class="sw${c===sh.c?" on":""}" data-c="${c}" style="background:${c}" aria-label="Color"></button>`).join("")}
+function evUi(){
+  const w=sh.k==="w";
+  $("s").hidden=$("e").hidden=sh.ad||w;
+  $("tad").hidden=$("trm").hidden=w;
+  $("sgw").hidden=!w;
+  $("tad").classList.toggle("on",sh.ad);$("trm").classList.toggle("on",sh.r);
+  document.querySelectorAll("#kseg button").forEach(b=>b.classList.toggle("on",b.dataset.k===sh.k));
+  $("n").placeholder=w?"Nombre del bloque (Trabajo)":"Título";
+}
+const addH=(t,h)=>{const [a,b]=t.split(":").map(Number);return p2((a+h)%24)+":"+p2(b)};
+function renderSg(){$("sgl").innerHTML=sh.sg.map((g,i)=>`<div class="sgr"><input type="time" value="${g.s}" data-i="${i}" data-f="s" aria-label="Inicio"><input type="time" value="${g.e}" data-i="${i}" data-f="e" aria-label="Fin"><input type="text" value="${esc(g.l||"")}" data-i="${i}" data-f="l" placeholder="Tramo" maxlength="30" aria-label="Nombre del tramo"><button class="rm" data-rm="${i}" aria-label="Quitar">✕</button></div>`).join("")}
+$("sgl").addEventListener("input",e=>{const t=e.target,i=t.dataset.i;if(i!==undefined&&sh)sh.sg[+i][t.dataset.f]=t.value});
+function openMk(){
+  const mk=marks[sel],{M,D}=dparts(sel);
+  sh={t:"mk",c:mk?mk.c:PAL[1]};
+  $("mkh").textContent="Marcar el "+D+" de "+MES[M-1];
+  $("mkl").value=mk?mk.l:"Libre";$("mk1").value=sel;$("mk2").value="";$("mkd").hidden=!mk;
+  sw();showS("s-mk");
+}
+$("mrow").onclick=openMk;
 function openEv(mode,id,pre){
-  pre=pre||{};sh={t:"ev",mode,id,c:PAL[0],ad:!!pre.ad,r:!!pre.r};
+  pre=pre||{};sh={t:"ev",mode,id,c:PAL[0],ad:!!pre.ad,r:!!pre.r,k:"e",sg:[]};
   let t="",d=pre.d||sel,s="09:00",e="10:00";
-  if(mode==="edit"){const r=findEv(id);t=r.x.t;d=r.k;s=r.x.s||"09:00";e=r.x.e||"10:00";sh.c=colOf(r.x.c);sh.ad=!r.x.s;sh.r=!!r.x.r}
+  if(mode==="edit"){const r=findEv(id);t=r.x.t;d=r.k;s=r.x.s||"09:00";e=r.x.e||"10:00";sh.c=colOf(r.x.c);sh.ad=!r.x.s;sh.r=!!r.x.r;if(r.x.k==="w"){sh.k="w";sh.sg=(r.x.sg||[]).map(g=>({...g}));sh.ad=false}}
   $("n").value=t;$("dt").value=d;$("s").value=s;$("e").value=e;
   $("evh").textContent=mode==="edit"?"Editar evento":"Nuevo evento";$("evd").hidden=mode!=="edit";
-  sw();evUi();showS("s-ev");
+  sw();renderSg();evUi();showS("s-ev");
 }
 function openGo(mode,id){
   sh={t:"go",mode,id,c:PAL[0]};
@@ -328,11 +377,20 @@ function openGo(mode,id){
 }
 function ok(){
   if(sh.t==="ev"){
-    const t=$("n").value.trim(),d=$("dt").value;if(!t||!d)return;
-    let id=uid(),dn=false;
+    const d=$("dt").value;if(!d)return;
+    const w=sh.k==="w";
+    let t=$("n").value.trim(),id=uid(),dn=false;
+    if(w){t=t||"Trabajo";if(!sh.sg.some(g=>g.s&&g.e))return}else if(!t)return;
     if(sh.mode==="edit"){id=sh.id;dn=!!rmEv(id).d}
-    const s=sh.ad?"":$("s").value||"09:00",e=sh.ad?"":$("e").value||s;
-    (ev[d]=ev[d]||[]).push({id,s,e,t,c:sh.c,r:sh.r,d:sh.r&&dn});
+    if(w)(ev[d]=ev[d]||[]).push({id,k:"w",t,c:sh.c,sg:sh.sg.filter(g=>g.s&&g.e),s:"",e:"",r:false,d:false});
+    else{
+      const s=sh.ad?"":$("s").value||"09:00",e=sh.ad?"":$("e").value||s;
+      (ev[d]=ev[d]||[]).push({id,s,e,t,c:sh.c,r:sh.r,d:sh.r&&dn});
+    }
+  }else if(sh.t==="mk"){
+    let a=$("mk1").value,b=$("mk2").value||a;if(!a)return;if(b<a)[a,b]=[b,a];
+    const l=$("mkl").value.trim()||"Libre",{Y,M,D}=dparts(a);
+    for(let i=0;i<400;i++){const k=key(new Date(Y,M-1,D+i));if(k>b)break;marks[k]={c:sh.c,l}}
   }else{
     const t=$("gt").value.trim();if(!t)return;
     const p=Math.max(0,Math.min(100,parseInt($("gp").value)||0));
@@ -342,13 +400,16 @@ function ok(){
   persist();closeS();render();
 }
 function del(){
-  if(sh.t==="ev")rmEv(sh.id);else gs=gs.filter(z=>z.id!==sh.id);
+  if(sh.t==="ev")rmEv(sh.id);else if(sh.t==="mk")delete marks[sel];else gs=gs.filter(z=>z.id!==sh.id);
   persist();closeS();render();
 }
 $("bd").onclick=e=>{
   if(e.target===$("bd"))return closeS();
   const b=e.target.closest("button");if(!b)return;
   if(b.dataset.c){sh.c=b.dataset.c;return sw()}
+  if(b.dataset.k){sh.k=b.dataset.k;if(sh.k==="w"&&!sh.sg.length){sh.sg=[{s:"08:00",e:"14:00",l:"Trabajo"}];renderSg()}return evUi()}
+  if(b.id==="sga"){const p=sh.sg[sh.sg.length-1],st=p&&p.e?p.e:"08:00";sh.sg.push({s:st,e:addH(st,1),l:["Trabajo","Descanso","Turno 2"][sh.sg.length]||""});return renderSg()}
+  if(b.dataset.rm!==undefined){sh.sg.splice(+b.dataset.rm,1);return renderSg()}
   if(b.id==="tad"){sh.ad=!sh.ad;return evUi()}
   if(b.id==="trm"){sh.r=!sh.r;return evUi()}
   const a=b.dataset.a;
